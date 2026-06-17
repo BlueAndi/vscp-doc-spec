@@ -180,13 +180,13 @@ packet
 
  | Bits  | Description                                                         |
  | :----: |-----------                                                         |
- | 15    | Set if this is a dumb node. No MDF, register, nothing (D).              |
- | 14,13,12    | GUID type                                                           |
- | 11-10  | Reserved (**Set to zero!**).                                        |
- | 9,8  | Frame type.                                                         |
+ | 15    | Set if this is a dumb node. No MDF, register, nothing (D).          |
+ | 14,13,12    | GUID type                                                     |
+ | 11-10  | Reserved (**Set to zero!**).                                       |
+ | 9,8  | Frame type.                                                          |
  | 7,6,5 | Priority.                                                           | 
- | 4     | Hard-coded (HC).                                                         |
- | 3     | Don't calculate CRC if bit set (!CRC).                                     |
+ | 4     | Hard-coded (HC).                                                    |
+ | 3     | Don't calculate CRC if bit set (!CRC).                              |
  | 2,1,0 | Rolling index.                                                      |  
 
 Note also that the MSB is sent before the LSB (network byte order, Big Endian). So, for little endian machines such as a typical PC the byte order needs to be reversed for multi-byte types.
@@ -221,21 +221,23 @@ The Level II register abstraction level also has more registers (32-bit address 
  | 12 | [INFO](#info) | 1 | Get status information. |
  | 13 | [GETCHID](#getchid) | 1 | Get channel id. |
  | 14 | [SETGUID](#setguid) | 6 | Set GUID for the device (privileged command). |
-  | 15 | [GETGUID](#getguid) | 1 | Get GUID for the device. |
-  | 16 | [VERSION](#version) | 0 | Get version of binary interface. |
-  | 17 | [SETFILTER](#setfilter) | 1 | Set filter for channel. |
-  | 18 | [SETMASK](#setmask) | 1 | Set mask for channel. |
-  | 19 | [INTERFACE](#interface) | 1 | List interfaces on device |
-  | 20 | [TEST](#test) | 15 | Perform tests. |
-  | 21 | [WCYD](#wcyd) | 0 | What Can You Do, find out what a node supports. |
-  | 22 | [SHUTDOWN](#shutdown) | 15 | Shutdown device (privileged command). |
-  | 23 | [RESTART](#restart) | 15 | Restart device (privilegded command). |
-  | 24 | [TEXT](#text) | 0 | Go back to text mode. |
-  | 25-65279 | Reserved | x | Reserved. |
-  | 65280-65534 | USER | x | User defined commands. |
-  | 65535 | [Event confirm](#event-confirm) | x | Sent as a reply for received event confirmation. |
+ | 15 | [GETGUID](#getguid) | 1 | Get GUID for the device. |
+ | 16 | [VERSION](#version) | 0 | Get version of binary interface. |
+ | 17 | [SETFILTER](#setfilter) | 1 | Set filter for channel. |
+ | 18 | [SETMASK](#setmask) | 1 | Set mask for channel. |
+ | 19 | [INTERFACE](#interface) | 1 | List interfaces on device |
+ | 20 | [TEST](#test) | 15 | Perform tests. |
+ | 21 | [WCYD](#wcyd) | 0 | What Can You Do, find out what a node supports. |
+ | 22 | [SHUTDOWN](#shutdown) | 15 | Shutdown device (privileged command). |
+ | 23 | [RESTART](#restart) | 15 | Restart device (privilegded command). |
+ | 24 | [TEXT](#text) | 0 | Go back to text mode. |
+ | 25-65279 | Reserved | x | Reserved. |
+ | 65280-65534 | USER | x | User defined commands. |
+ | 65535 | [Event confirm](#event-confirm) | x | Sent as a reply for received event confirmation. |
+
 
 Privilege levels are the user privilege needed to execute the command. The levels are defined as follows:
+
 | Level | Description |
 | :---: | ----------- |
 | 0 | No privileges needed. |
