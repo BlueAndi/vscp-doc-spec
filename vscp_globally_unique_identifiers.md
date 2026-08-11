@@ -109,11 +109,11 @@ It is possible to create your own GUID without requesting a series and still get
  | <pre>FF:FF:FF:FF:FF:FF:FF:00:00:00:00:00:00:00:00:00 - </pre><pre>FF:FF:FF:FF:FF:FF:FF:EF:FF:FF:FF:FF:FF:FF:FF:FF</pre> | Reserved  |
  | <pre>00:00:00:00:00:00:00:00:00:00:00:00:xx:xx:xx:xx</pre> | Lab usage. You can use this range for your own development or for in-house local use. The GUID should never appear outside your local segments. | 
  | <pre>FE:YY:YY:YY:YY:YY:YY:YY:YY:YY:YY:YY:YY:YY:YY:YY</pre> | Reserved for a generated 128 bit GUID where the most significant byte is replaced by FE Only use for Level II and on internal net. [https://hegel.ittc.ku.edu/topics/internet/internet-drafts/draft-l/draft-leach-uuids-guids-01.txt](https://hegel.ittc.ku.edu/topics/internet/internet-drafts/draft-l/draft-leach-uuids-guids-01.txt) | 
- | <pre>FD:AA:BB:YY:YY:YY:YY:YY:YY:YY:YY:YY:YY:YY:YY:YY</pre> | Reserved for MCU internal id's provided by some manufacturers. AA is manufacturer code. BB is family code (deprecated (1.20.4): set to zero). There is room for a 13-byte id. If the particular CPU have a an id that is shorter than put used bits to the right and set unused MSB bytes to zero. See information below. | 
+ | <pre>FD:AA:BB:YY:YY:YY:YY:YY:YY:YY:YY:YY:YY:YY:YY:YY</pre> | Reserved for MCU internal id's provided by some manufacturers. AA BB is the manufacturer code. There is room for a 13-byte id. If the particular CPU have a an id that is shorter than put used bits to the right and set unused MSB bytes to zero. See information below. | 
 
 ## MCU stored GUID's
 
-As explained above GUID's with 0xFD in the most significant byte is reserved for MCU's with an on-ship stored id. If your MCU is not in the list below please let us know and we will add it (or you can add it yourself). Thus new MCU's will be added as they are needed by someone.
+As explained above GUID's with 0xFD in the most significant byte is reserved for MCU's with an on-ship stored id. If your manufacturer is not in the list below please let us know and we will add it (or you can add it yourself). Thus new MCU's will be added as they are needed by someone.
 
 ### Manufacturer code
 
@@ -130,63 +130,13 @@ As explained above GUID's with 0xFD in the most significant byte is reserved for
  | 8    | GigaDevice Semiconductor | 
  | 9    | Raspberry Pi | 
  | 10   | EspressIf | 
- | 255   | Undefined/Unknown manufacturer |
+ | 255   | Undefined/Unknown manufacturer (for compatibility) |
+ | 0xffff | Undefined/Unknown manufacturer |
 
 ### Family codes
 
-Family codes are deprecated as of 1.20.0. 
+**!!!Family codes are deprecated as of 1.20.0.**
 
-#### Microchip
-
-*tbd* Use zero.
-
-#### Atmel
-
- | Code  | Description | 
- | :----: | :-----------  | 
- | 0     | Xmega Family, use [DEVID2:1][LOTNUM5:4:3:2:1:0]:[WAFNUM]:[COORDX1:0][COORDY1:0] as bytes 13::0 of the GUID. DEVID0 not used because it is always a constant. DEVIDx is from *"MCU Control registers"*, rest from *"Production Signature Row"*. | 
- | 1-255 | t.b.d  | 
-
-Notes on other families:
-
-*  No serial number: ATiny, AtMega, AT91SAM, SAM7 S/SE/X/XC, SAM9 XE n/M/N/CN/R/G/X, complete 8051 architecture
-*  AT32 UC3 = 120 Bit
-*  SAM C/D/E/G/L/S/V = 128 Bit
-*  SAM3 A/N/S/U/X have 128 Bit
-*  SAM4 L = 120 Bit, SAM4E/S/N = 128 Bit
-*  SAMA5 = 128 Bit
-
-####  ST Microelectronics
-
- | Code | Description | 
- | :----: | ----------- | 
- | 0    | STM8 AL/L/S/T but not STM8AF, use the *"MCU device ID"* (which is 12 bit) as byte 13:12 (bits 7::4 of byte 13=0) and the *"Unique device ID"* (96 Bit = 12 Byte) as bytes 11::0 of the GUID. | 
- | 1    | STM32 F/L/T/W, use the *"MCU device ID"* (which is 12 bit) as byte 13:12 (bits 7::4 of byte 13=0) and the *"Unique device ID"* (96 Bit = 12 Byte) as bytes 11::0 of the GUID.                | 
-
-Notes on other families:
-
-*  STR75xFxx have no UID
-
-#### NXP
-
-Use zero. 
-*tbd (LPCxxxx all have 128Bit ID (without description)*
-
-#### Freescale
-
-Use zero. *tbd*
-
-#### GigaDevice Semiconductor.
-
-Use zero. *tbd*
-
-#### Raspberry Pi
-
-Use zero. *tbd*
-
-#### EspressIf 
-
-Use zero. *tbd*
 
 ## Shorthand GUID's
 

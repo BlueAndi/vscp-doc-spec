@@ -259,32 +259,37 @@ No argument.
 Used on the following form:
 
     send head,class,type,obid,datetime,timestamp,GUID,data1,data2,data3....
-or
-    send $variablename
+
+on some platforms. The variable send form makes it possible to send the content in a remote variable on a system that have them. In this case give the name of the variable as argument preceded with a dollar ('$') sign.
 
 The GUID is given on the form MSB-byte:MSB-byte-1:MSB-byte-2……. The GUID can also be given as ”-” in which case the GUID of the interface is used for the event.
 
-datetime and timestamp can be sent in two different ways
+In later versions of VSCP the datetime and timestamp can be sent in two different ways
 
-1.) Legacy
+### 1.) Legacy
 
 **datetime** is UTC date time (Coordinated Universal Time) on ISO format
     YYYY-MM-DDTHH:MM:DD 
 
-If timestamp is a relative time in microseconds. It can be empty in which case a timestamp will be set by the system. Before version *1.12.20.0* a timestamp of zero would be replaced by a system set timestamp this is not the case anymore.
+together with the timestamp in microseconds this data is was/is internally converted to a timestamp with microsecond resolution. The datetime field can be empty (keep the comma) in which case the timestamp field is used as a relative time in microseconds.
 
-When received the leagacy format should be conveted to the nanosecond timestamp format.
+Before version *1.12.20.0* a timestamp of zero would be replaced by a system set timestamp this is not the case anymore.
 
-2.) With nanosecond timestamp
+When received the a legacy format it should/will be converted to the nanosecond timestamp format internally (microsecond resolution). So the legacy format is only for compatibility reasons and should not be used in new implementations.
 
-Leave datetime empty (keep the comma) and set timestamp to a 64-bit unix timestamp with nanosecond resolution. This is the number of nanoseconds since 1970-01-01T00:00:00Z with nanosecond resolution. 
+### 2.) With nanosecond timestamp
 
-The variable send form makes it possible to send the content in a remote variable on a system that have them. In this case give the name of the variable as argument preceded with a dollar ('$') sign.
+Leave datetime empty (keep the comma) and set timestamp to a 64-bit unix timestamp with nanosecond resolution. This is the number of nanoseconds since 1970-01-01T00:00:00Z with nanosecond resolution. This is the way to send events in new implementations.
+
+The datetime field is ignored when the timestamp field is used with the new format. The timestamp field is always used as a timestamp with nanosecond resolution when it is not empty.
+
 
 **Example:**
 Send a full GUID event
 
     send 0,20,3,,,,00:01:02:03:04:05:06:07:08:09:0A:0B:0C:0D:0E:0F,0,1,35<CR><LF>
+
+obid is missig and will be set to zero. The datetime is missing and will be set to the current time. The timestamp is missing and will be set to the current time.
 
 Send Event. The example is the same as above but the GUID of the interface will be used.
 
@@ -296,7 +301,7 @@ which is the same as
 
 Send event with UTC time set
 
-    send 0,20,3,,2001-11-02T18:00:01,,-,0,1,35<CR><LF>
+    send 0,20,3,,2001-11-02T18:00:01,,-,0,1,35<CR><LF>  
 
 send event with GUID on textual form
 
@@ -323,11 +328,7 @@ So the above example would be
 
 where class will become *532* (512 + 20) and where *00,0F,0E,0D,0C,0B,0A,09,08,07,06,05,04,03,02,01,00,00* is the interface the events should be routed to. Note the two zeros at the two least significant bytes always is zero for an interface and is reserved for node id's.
 
-**Send content of variable**
 
-    send $tempevent1
-
-In this example the content of the variable tempevent1 is sent. The variable is of type event.
 
 ### Argument
 Event on string format or variable name preceded with a dollar sign.

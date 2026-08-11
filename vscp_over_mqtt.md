@@ -30,7 +30,7 @@ The XML format where each event is packed as
      data="0x48,0x34,0x35,0x2E,0x34,0x36,0x34" />
 ```
 
-See the JSON format for the possibility to skip (redundant) fields.
+See the JSON format for the possibility to skip (redundant) fields. Note that timestamps are 64-bit wide numbers.
 
 ### Optional extra attributes
 
@@ -60,7 +60,7 @@ The JSON format where each VSCP event is packed as
     "head": 2,
     "obid": 123,
     "datetime": "2017-01-13T10:16:02",
-    "timestamp":50817,
+    "timestamp": "0x50817",
     "class": 10,
     "type": 8,
     "guid": "00:00:00:00:00:00:00:00:00:00:00:00:00:01:00:02",
@@ -71,6 +71,8 @@ The JSON format where each VSCP event is packed as
 __All tags was preceded with "vscp..." in versions < 16.0. This has changed to be consistent with.__
 
 __Note the casing. The format is **not** case insensitive.__
+
+**Timestamps** in VSCP is a 64-bit number. Timestamps in JSON should therefore be written as decimal, hexadecimal (prefix 0x) or octal strings (prefix 0x). It is possible to still send a number but the number will then be max 54 bits.
 
 ### Optional extra fields
 
@@ -118,7 +120,7 @@ several of the fields can be skipped if the information is already known.
 
 **datetime** Should be read as now and today if not present, that is todays date and time when the event was received.
 
-**timestamp** Should be set to a microsecond timestamp on the receiving side or be set to zero to let other layers set it.
+**timestamp** Should be set to a microsecond timestamp on the receiving side or be set to zero to let other layers set it. Timestamps in VSCP is a 64-bit number. Timestamps in JSON should therefore be written as decimal, hexadecimal (prefix 0x) or octal strings (prefix 0x). It is possible to still send a number but the number will then be max 54 bits.
 
 **data** If there is no data it can be left out.
 
