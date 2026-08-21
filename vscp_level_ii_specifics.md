@@ -1,12 +1,12 @@
 # VSCP Level II Specifics
 
-Also check VSCP over TCP/IP which have more Level II specifics for the lower levels.
+See also [VSCP over TCP/IP](./vscp_over_tcp_ip.md), which defines additional Level II details for lower-level implementations.
 
-Level II nodes are intended for media with higher bandwidth then Level I nodes and no nickname procedure is therefore implemented on Level II. As result of this the full GUID is sent in each packet.
+Level II nodes are intended for higher-bandwidth media than Level I nodes. Level II does not use the Level I nickname procedure; consequently, the full 16-byte GUID is included in every event.
 
 ## Level II events
 
-The frame for a level II event is defined as one version where data is dynamically allocated to save resources 
+The Level II event is defined in two forms. `vscpEvent` stores the event data in dynamically allocated memory, while `vscpEventEx` stores the data within the structure itself.
 
 ```c++
 typedef struct _vscpEvent {
@@ -17,7 +17,7 @@ typedef struct _vscpEvent {
       Bit 13 - GUID type
       Bit 12 - GUID type (GUID is IP v.6 address if set and 13/14 is zero.)
       Bit 8-11 = Reserved
-      Bit 765 =  priority, Priority 0-7 where 0 is highest priority.
+      Bits 5-7 = priority, 0-7 where 0 is the highest priority.
       Bit 4 = hard coded, true for a hard coded device.
       Bit 3 = Don't calculate CRC, false for CRC usage.
             Just checked when CRC is used.
@@ -34,24 +34,25 @@ typedef struct _vscpEvent {
   uint32_t obid; /* Used by driver for channel info etc. */
 
   /*
-    Time block - Always UTC time. I all zero set current time on receiving end
+    Time block - Always UTC. If all fields are zero, set the current time at
+    the receiving end.
 
-    If year is set to 0xffff a unix UTC timestamp with nanosecond precision is formed by the
-    eight byte buffer starting at the day field MSB first.
+    If year is 0xffff, the eight bytes starting at the day field contain a
+    Unix timestamp with nanosecond precision, MSB first.
   */
   uint16_t year;
-  uint8_t month; /* 1-12 */
+  uint8_t month; /* 1-12; 0xff when timestamp_ns is used */
 
   union {
-    uint64_t timestamp_ns; /* Unix timestamp with nanosecond precision (when year == 0xffff) */
+    uint64_t timestamp_ns; /* Unix timestamp in nanoseconds (when year == 0xffff) */
     struct {
       uint8_t day;        /* 1-31 */
       uint8_t hour;       /* 0-23 */
       uint8_t minute;     /* 0-59 */
       uint8_t second;     /* 0-59 */
-      uint32_t timestamp; /* Relative time stamp for package in microseconds */
-                          /* ~71 minutes before roll over */
-                          /* If all zero set relative time on receiving end */
+      uint32_t timestamp; /* Legacy relative event time in microseconds */
+              /* Rolls over after approximately 71 minutes */
+              /* If zero, set relative time at the receiver */
     };
   };
 
@@ -117,7 +118,6 @@ typedef struct _vscpEventEx {
                           /* If all zero set relative time on receiving end */
     };
 
-    uint16_t crc; /* Used for UDP/Ethernet etc */
   };
 
   uint16_t vscp_class; /* VSCP class   */
@@ -127,16 +127,18 @@ typedef struct _vscpEventEx {
 
   uint8_t data[VSCP_MAX_DATA]; /* Pointer to data. Max. 512 bytes     */
 
+  uint16_t crc; /* Used for UDP/Ethernet etc */
+
 } vscpEventEx;
 
 typedef vscpEventEx *PVSCPEVENTEX;
 ```
 
-The biggest differences is that the GUID is sent in each event and that both class and type has a 16-bit length.
+The main differences from Level I are that the full GUID is sent with each event, and both the class and type fields are 16 bits wide.
 
-The CRC is calculated using the CCITT polynomial
+The CRC is calculated using the CCITT polynomial.
 
- The format in a stream is
+The stream format is described in the relevant transport specification.
 
 
 ## VSCP LEVEL II UDP datagram offsets
@@ -180,26 +182,41 @@ The CRC is calculated using the CCITT polynomial
 #define VSCP_MULTICAST_PACKET0_POS_VSCP_DATA            36
 ```
 
-As is noted the obid and time-stamp is not present in the actual stream and is only inserted by the driver interface software.
+The `obid` and time fields are not present in this datagram layout. They are inserted by the driver or interface software when the datagram is converted to a VSCP event.
 
-Level I events can travel in the Level II world. This is because all Level I events are repleted in Class=1024. As nicknames are not available on Level II they are replaced in the events by the full GUID. This is an important possibility in larger installations.
+Level I events can travel through a Level II network because Level I events are represented in Level II using class 1024. Since nicknames are not available in Level II, the nickname is replaced by the full GUID. This is useful in larger installations.
 
-A event from a node on a Level I that is transferred out on a Level II can have the nodes own GUID set or the GUID of the interface between the Level I and the Level II segment. Which method to choose is up to the implementer as long as the GUID's are unique.
+When a Level I event is transferred to Level II, the event may use either the originating node's GUID or the interface's GUID. The implementer may choose either approach, provided that the GUIDs remain unique and the chosen policy is consistent.
 
-For interfaces the machine MAC address, if available, is a good base for a GUID which easily can map to real physical nodes that are handled by the interface. By using this method each MAC address gives 65536 unique GUID's.
+For an interface, the machine's MAC address, when available, is a useful basis for a GUID because it can be mapped to the physical nodes managed by that interface. This approach provides 65,536 unique GUIDs per MAC address.
 
-Other methods to generate GUID's s also available form more information [see](https://grodansparadis.github.io/vscp-doc-spec/#/./vscp_globally_unique_identifiers).
+Other methods for generating GUIDs are described in [Globally Unique Identifiers](https://grodansparadis.github.io/vscp-doc-spec/#/./vscp_globally_unique_identifiers).
 
-## String Representation
-In some cases it is useful to have a compact string representation of the an Event. This is for instance used in the [VSCP tcp/ip link protocol](./vscp_over_tcp_ip.md). The format is
+## String representation
+
+A compact string representation is used, for example, by the [VSCP TCP/IP link protocol](./vscp_over_tcp_ip.md).
+
+The current format is:
+
+```
+head,class,type,obid,,timestamp_ns,GUID,data1,data2,data3....
+```
+
+The legacy format is:
 
 ```
 head,class,type,obid,datetime,timestamp,GUID,data1,data2,data3....
 ```
 
-date time is in ISO 8601 format (_"YYYY-MM-DDTHH:MM:SS[.ssss[Z]]":).
+In the legacy format, `datetime` is an ISO 8601 UTC date and time in the form `YYYY-MM-DDTHH:MM:SS[.ssss[Z]]`. It is deprecated in new implementations and should be left blank.
 
-_obid_, _datetime_, and _timestamp_ can be left out. In this case a comma is used instead. If datetime is left out the first intelligent interface the event passes will set the datetime of the event to the current UTC time. If timestamp is left out the first interface the event passes will set the timestamp of the event to the current time in microseconds.
+`obid`, `datetime`, and the legacy `timestamp` may be omitted. The field positions are retained by leaving the corresponding fields empty.
+
+Modern software should use `timestamp_ns`, a separate 64-bit Unix timestamp with nanosecond resolution. The legacy `datetime` and `timestamp` fields are left blank when `timestamp_ns` is present.
+
+If `datetime` and `timestamp_ns` are both absent, the first interface that receives the event should set `timestamp_ns` to the current UTC time.
+
+If `timestamp_ns` is absent but `datetime` is present, the receiver should convert `datetime` to `timestamp_ns`. A legacy `timestamp`, when present, is a relative microsecond offset and may be added after conversion according to the timestamp rules.
 
 The GUID can either be the full GUID on the form
 
@@ -215,11 +232,11 @@ or a dash
 
 or empty. If it is a dash or is empty the GUID of the interface is set for the event.
 
-All numbers except the numbers of the GUID (always in hex without a preciding '0x', can either be decimal or hexadecimal. Hexadecimal numbers should be preceded by '0x'.
+All numeric fields except GUID components may be decimal or hexadecimal. GUID components are always hexadecimal and do not use a `0x` prefix. Other hexadecimal numbers should use the `0x` prefix.
 
-## XML Representation
+## XML representation
 
-VSCP level II events can be presented as XML data. Format is
+VSCP Level II events can also be represented as XML:
 
 ```xml
 <?xml version = "1.0" encoding = "UTF-8" ?>
@@ -229,8 +246,9 @@ VSCP level II events can be presented as XML data. Format is
     vscpClass="Event class is numerical form or CLASSx:numerical form"
     vscpType="Event type in numerical form."
     vscpGuid="ff:ee:dd:cc:bb:aa:99:88:77:66:55:44:33:22:11:00"
-    vscpTimeStamp="Relative microsecond value."
-    vscpDateTime="2018-03-03T12:01:40Z"
+    vscpTimeStamp="Legacy relative microsecond value."
+    vscpDateTime="Legacy ISO 8601 UTC date and time."
+    timestamp_ns="Unix timestamp in nanoseconds."
     vscpData="
     Comma separated list with event data. Hex values (preceded with '0x')and decimal values allowed."
     unit="Code for unit data is presented in"
@@ -241,91 +259,112 @@ VSCP level II events can be presented as XML data. Format is
 />
 ```
 
-__unit__, __sensorindex__, __coding__ and __value__ is extra information used by event decoding logic. __note__ is used by analytic software like VSCP Works__
+`unit`, `sensorindex`, `coding`, and `value` are optional fields used by event-decoding software. `note` is used by analytical software such as VSCP Works.
 
-If vscpTimeStamp and or vscpDateTime is absent they should be treated as 'now'.
+If `timestamp_ns`, `vscpTimeStamp`, and `vscpDateTime` are absent, the event time should be set to the current time at the receiving end.
 
-vscpTimeStamp is a sender relative value expressed in microseconds that can be used for more precise timing calculations
+`vscpTimeStamp` is a sender-relative value in microseconds. It is retained for backward compatibility and is not the same as `timestamp_ns`.
 
-vscpDateTime is date + time in UTC on ISO format
+`vscpDateTime` is a legacy UTC date and time in ISO 8601 format.
 
-Defaults for absent fields is described in the JSON section below.
+Defaults for absent fields are described in the JSON section below.
 
-## JSON Representation
+## JSON representation
 
-VSCP level II events can be presented as JSON data. Format is
+VSCP Level II events can be represented as JSON. The current format is:
 
 ```json
-{   
-    "vscpHead":0,
-    "vscpObId":0,
-    "vscpClass":10,
-    "vscpType":6,
-    "vscpGuid":"ff:ee:dd:cc:bb:aa:99:88:77:66:55:44:33:22:11:00",
-    "vscpTimeStamp":1234567,
-    "vscpDateTime":"2018-03-03T12:01:40Z",
-    "vscpData":[1,2,3,4],
-    "vscpNote":"Some optional note about event",
-    "measurement": {
-        "value":1.2345
-        "unit":0,
-        "sensorindex":0,
-        "zone":0,
-        "subzone":0
-    }
+{
+  "head": 0,
+  "obid": 0,
+  "class": 10,
+  "type": 6,
+  "guid": "ff:ee:dd:cc:bb:aa:99:88:77:66:55:44:33:22:11:00",
+  "timestamp_ns": "1755792180000000000",
+  "data": [1, 2, 3, 4],
+  "note": "Some optional note about event",
+  "measurement": {
+    "value": 1.2345,
+    "unit": 0,
+    "sensorindex": 0,
+    "zone": 0,
+    "subzone": 0
+  }
 }
 ```
-**vscpNote** is used by analytic software like VSCP Works for log files and other diagnostic event logs stored on disks or similar.
 
-**unit**, **sensorindex**,**coding** and **value** are optional for measurements event conversions.
+The following property names are deprecated but remain supported for compatibility:
 
-__unit__, __sensorindex__, __coding__ and __value__ is extra information used by event decoding logic. __note__ is used by analytic software__
+```json
+{
+  "vscpHead": 0,
+  "vscpObId": 0,
+  "vscpClass": 10,
+  "vscpType": 6,
+  "vscpGuid": "ff:ee:dd:cc:bb:aa:99:88:77:66:55:44:33:22:11:00",
+  "vscpTimeStamp": 1234567,
+  "vscpDateTime": "2018-03-03T12:01:40Z",
+  "vscpData": [1, 2, 3, 4],
+  "vscpNote": "Some optional note about event",
+  "measurement": {
+    "value": 1.2345,
+    "unit": 0,
+    "sensorindex": 0,
+    "zone": 0,
+    "subzone": 0
+  }
+}
+```
+`vscpNote` is used by analytical software such as VSCP Works for log files and other diagnostic event logs.
 
+`unit`, `sensorindex`, `coding`, and `value` are optional measurement-conversion fields.
 
-If vscpTimeStamp and or vscpDateTime is absent each should be treated as 'now'.
+The measurement block is optional. It may be added by software that decodes measurements, but consumers must not assume that it is present.
 
-vscpTimeStamp is a sender relative value expressed in microseconds that can be used for more precise timing calculations.
+If `timestamp_ns`, `vscpTimeStamp`, and `vscpDateTime` are absent, the event time should be set to the current time at the receiving end.
 
-vscpDateTime is date + time in UTC on ISO format.
+`vscpTimeStamp` is a legacy sender-relative value in microseconds. It is deprecated. The current `timestamp_ns` property is a separate 64-bit Unix timestamp with nanosecond resolution.
 
-The measurement block is optional. It can be inserted by software for measurements but should not be expected to be available.
+`vscpDateTime` is a legacy UTC date and time in ISO 8601 format.
 
-If a tag is not present it should be interpreted as zero with the exception for vscpTimeStamp and vscpDateTime described above.
+If a property is not present, it should be interpreted as zero unless otherwise specified. The exceptions are the time fields described above, `vscpGuid`, and `vscpData`.
 
 Higher level software may use
 
 ```json
-vscpClassToken:"VSCP_CLASS1_MEASUREMENT",
-vscpTypeToken:"VSCP_TYPE_MEASUREMENT_ELECTRIC_CURRENT",
+{
+  "vscpClassToken": "VSCP_CLASS1_MEASUREMENT",
+  "vscpTypeToken": "VSCP_TYPE_MEASUREMENT_ELECTRIC_CURRENT"
+}
 ```
-
-or similar for more user friendly class/type information. They should be give in addition to the numerical form, not instead of.
+or similar for more user-friendly class and type information. These tokens should be provided in addition to the numeric values, not instead of them.
 
 ### Defaults for absent fields
 
-If bandwidth is constrained field can be omitted. If fileds are omitted the following is true
+When bandwidth is constrained, fields may be omitted. If a field is omitted, the following defaults apply:
 
-  * vscpHead will default to zero.
-  * vscpObId will default to zero.
-  * vscpGuid will default to all zero. This can typically be omitted if the topic on a MQTT channel holds the GUID.
-  * vscpTimeStamp will defaults to the current microsecond timestamp on the client.
-  * vscpDateTime will default to 'today' and 'now' on the client.
-  * vscpClass and or vscpType willdefault to zero. This can typically be omitted if the topic on a MQTT channel holds one or both of them.
-  * vscpData is empty if omitted.
-  * vscpNote will default to an empty string
+  * `head` defaults to zero.
+  * `obid` defaults to zero.
+  * `guid` defaults to all zeros. It may be omitted if the MQTT topic contains the GUID.
+  * `vscpTimeStamp` defaults to zero because it is a legacy field.
+  * `timestamp_ns` defaults to the current UTC time at the receiving end.
+  * `vscpDateTime` is deprecated and defaults to absent.
+  * `vscpClass` and `vscpType` default to zero. They may be omitted if the MQTT topic contains one or both values.
+  * `data` is empty if omitted.
+  * `vscpNote` defaults to an empty string.
 
-As an example imagine that you have a device that you want to monitor for on/off. The VSCP event are 
+For example, consider a device that reports on/off events. The VSCP events are:
 
-  * [CLASS1.INFORMATION, Type=3, On](https://grodansparadis.github.io/vscp-doc-spec/#/./class1.information?id=type3) 
-  * [CLASS1.INFORMATION, Type=4, Off](https://grodansparadis.github.io/vscp-doc-spec/#/./class1.information?id=type4)
+  * [CLASS1.INFORMATION, type 3, On](https://grodansparadis.github.io/vscp-doc-spec/#/./class1.information?id=type3)
+  * [CLASS1.INFORMATION, type 4, Off](https://grodansparadis.github.io/vscp-doc-spec/#/./class1.information?id=type4)
 
-The data for each event contains 
+The data for each event contains:
 
   * index
   * zone
   * subzone
 
-If you now construct a topic on the form
+An MQTT topic can then use the following form:
 
    .../'GUID'/'class'/'type'/'index'/'zone'/'subzone'
 
@@ -333,36 +372,34 @@ or typically
 
     vscp/25:00:00:00:00:00:00:00:00:00:00:00:06:01:00:01/20/+/1/2/3/#
 
-you can easily construct the full event on the client side even if you only send minimal data.
+This allows the client to construct the complete event even when the message payload contains only minimal data.
 
 
-## Globally Unique Identifiers
+## Globally unique identifiers
 
-To classify as a node in a VSCP net all nodes must be uniquely identified by a globally unique 16-byte (yes that is 16-byte (128 bits) not 16-bit) identifier. This number uniquely identifies all devices around the world and can be used as a means to obtain device descriptions as well as drivers for a specific platform and for a specific device.
+Every node in a VSCP network must have a globally unique 16-byte (128-bit) identifier. This GUID identifies the device and can be used to locate its device description and platform-specific drivers.
 
-The manufacturer of the device can also use the number as a serial number to track manufactured devices. In many other environments and protocols there is a high cost in getting a globally unique number for your equipment. This is not the case with VSCP. If you own an Ethernet card you also have what is needed to create your own GUID's.
+The manufacturer may also use the GUID as a serial number. Unlike many other environments and protocols, VSCP allows GUIDs to be generated from commonly available identifiers. For example, an Ethernet MAC address can be used as the basis for a GUID.
 
-The GUID address is not normally used during communication with a node. Instead an 8-bit address is used. This gives a low protocol overhead. A segment can have a maximum of 127 nodes even if the address gives the possibility for 256 nodes. The 8-bit address is received from a master node called the segment controller. The short address is also called the nodes nickname-ID or nickname address.
+In Level I communication, the GUID is normally replaced by an 8-bit address to reduce protocol overhead. A segment can contain up to 127 nodes, although the address field can represent 256 values. The address is assigned by a master node called the segment controller and is also known as the node nickname or nickname address.
 
-Besides the GUID it is recommended that all nodes should have a node description string in the firmware that points to a URL that can give full information about the node and its family of devices. As well as providing information about the node, this address can point at drivers for various operating systems or segment controller environments. Reserved GUID's
+In addition to a GUID, each node should provide a node-description URL in its firmware. The URL can describe the node and its device family, and can link to drivers for operating systems or segment-controller environments.
 
-Some GUID's are reserved and unavailable for assignment. [Here](./assigned_guids) is a list these and also assigned IDs.
+Some GUIDs are reserved and unavailable for assignment. The [assigned GUIDs](./assigned_guids.md) page lists reserved and assigned ranges.
 
-The VSCP team controls the rest of the addresses and will allocate addresses to individuals or companies by them sending a request to [guid_request@vscp.org](guid_request@vscp.org). You can request a series of 32-bits making it possible for you to manufacture 4294967295 nodes. If you need more (!!!) you can ask for another series. There is no cost for reserving a series. [This page](./assigned_guids) contains a list of assigned addresses which will also be available at [https://www.vscp.org](https://www.vscp.org)
+The VSCP team allocates other address ranges to individuals and companies upon request at [guid_request@vscp.org](mailto:guid_request@vscp.org). A 32-bit range can identify up to 4,294,967,296 devices. There is no cost to reserve a range. The [assigned GUIDs](./assigned_guids.md) page contains the current allocation list.
 
-## Predefined VSCP GUID's
+## Predefined VSCP GUIDs
 
-It is possible to create your own GUID without requesting a series and still have a valid global VSCP GUID. This is because GUID series has been constructed from Ethernet MAC addresses and other common id series. Full list is [here](./vscp_globally_unique_identifiers.md).
+It is possible to create a valid global VSCP GUID without requesting an allocated range. Some GUID ranges are derived from Ethernet MAC addresses and other common identifier series. See the [full list](./vscp_globally_unique_identifiers.md).
 
+## Assigned VSCP GUIDs
 
+Current predefined GUID ranges are listed on the [assigned GUIDs](./assigned_guids.md) page. You can request your own range by contacting [guid_request@vscp.org](mailto:guid_request@vscp.org).
 
-## Assigned VSCP GUID's
+## Shorthand GUIDs
 
-Current predefined GUID series is listed [here](./assigned_guids.md)). You can request your own series by writing [guid_request@vscp.org](guid_request@vscp.org)
-
-## Shorthand GUID's
-
-Note that there is a convenient shorthand notation :: used for IPV6 that can be used as a place holder for zeros. For example
+The shorthand notation `::` can be used as a placeholder for zero-valued GUID components. For example:
 
     ::1
 
@@ -370,7 +407,7 @@ really means
 
     00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:01
 
-and
+Similarly:
 
     FF:21::22:32
 
@@ -378,12 +415,12 @@ is the same as
 
     FF:21:00:00:00:00:00:00:00:00:00:00:00:00:22:32
 
-we use *: in the same way for FFs so that
+The notation `*:` can be used as a placeholder for `FF` values:
 
 *:1 really means
 
     FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:01
 
-These short cut notations makes it much easier to write GUID's.
+These shorthand notations make GUIDs easier to write.
 
 [filename](./bottom_copyright.md ':include')

@@ -1,63 +1,63 @@
 # VSCP Level I Specifics
 
-## Level I Node types
+## Level I node types
 
-On each segment there can be two kind of nodes. Dynamic and hard-coded. 
+Each Level I segment can contain two types of nodes: dynamic nodes and hard-coded nodes.
 
 ### Dynamic nodes
 
-This is the most common node type. Dynamic nodes are VSCP nodes that confirm fully to the Level I part of this document. This means they have
+Dynamic nodes are the most common node type. A dynamic node conforms fully to the Level I specification and has:
 
 
-*  a GUID. 
-*  the register model implemented. 
-*  all or most control events of class zero implemented. As a minimum register read/write should be implemented in addition to the events related to the nickname discovery. 
-*  Have the hard coded bit in the ID is set to zero. 
-*  Must react on PROBE event on its assigned address with a probe ACK and should send out the ACK with the hard coded bit set.
+* A GUID.
+* The VSCP register model.
+* All or most class 0 control events. At a minimum, the node should implement register read/write and the events used for nickname discovery.
+* The hard-coded bit cleared in its CAN ID.
+* A response to a probe event addressed to its assigned nickname. The response is a probe ACK with the hard-coded bit set.
 
-Sample implementations are available at [https://www.vscp.org ]
+Sample implementations are available at [vscp.org](https://www.vscp.org).
 
-### Hard coded nodes
+### Hard-coded nodes
 
-VSCP hard-coded nodes have a nickname that is set in hardware and cant be changed.
+VSCP hard-coded nodes have a nickname that is set in hardware and cannot be changed.
 
-Very simple hard coded nodes can therefore be implemented. A node that sends out an event at certain times is typical and a button node that sends out an on-event when the button is pressed is another example. 
+Hard-coded nodes can be very simple to implement. Typical examples are a node that periodically sends an event and a button node that sends an on event when the button is pressed.
 
-## Address or “nickname” assignment for Level I nodes
+## Address or nickname assignment
 
-All nodes in a VSCP network segment need a way to get their nicknames IDs, this is called the nickname discovery process.
+Every node on a VSCP network segment needs a nickname ID. The process of assigning and verifying this ID is called nickname discovery.
 
-A VSCP Level 1 segment can have a maximum of 254 nodes + an additional 254 possible hard coded nodes. A segment can have a master that handles address or nickname assignment but this is not a requirement.
+A Level I segment can contain up to 254 dynamically addressed nodes and an additional 254 hard-coded nodes. A segment may have a master that assigns nicknames, but a master is not required.
 
-After a node has got its nickname-ID it should save this ID in permanent non-volatile storage and use it until it is told to stop using it. Even if a node forgets its nickname a segment controller must have a method to reassign the ID to the node. The master needs to store the nodes full address to accomplish this. 
+After receiving a nickname, a node should store it in non-volatile memory and continue using it until instructed to stop. If a node loses its nickname, the segment controller must be able to assign it again. To do this, the controller stores the node's full GUID.
 
-### Node segment initialization. Dynamic nodes
+### Dynamic-node initialization
 
-In a segment where a new node is added the following scenario is used. 
+When a new dynamic node is added to a segment, the following procedure is used.
 
-##### Step 1
+#### Step 1
 
-The process starts by pressing a button or similar on the node. If the node has a nickname assigned to it, it forgets this nickname and enters the initialization state. Uninitiated nodes use the reserved node-ID 0xFF. 
+The process starts when a button or similar control is activated on the node. If the node already has a nickname, it forgets that nickname and enters the initialization state. An uninitialized node uses the reserved node ID `0xFF`.
 
-##### Step 2
+#### Step 2
 
-The node sends a probe event [CLASS1.PROTOCOL, TYPE=2 Probe](./class1.protocol?id=type2) to address 0 (the address reserved for the master of a segment) using 0xFF as its own address. The priority of this event is set to 0x07. The master (if available) now has a chance to assign a nickname to the node [CLASS1.PROTOCOL, TYPE=6 Set Nickname](./class1.protocol?id=type6). One second may be a good interval for which this assignment should happen.
+The node sends a [CLASS1.PROTOCOL, type 2 Probe](./class1.protocol?id=type2) to address `0`, which is reserved for the segment master. The node uses `0xFF` as its own address and sends the probe at priority `0x07`. If a master is available, it can assign a nickname using [CLASS1.PROTOCOL, type 6 Set Nickname](./class1.protocol?id=type6). A one-second response interval is a reasonable starting point.
 
-If no nickname assignment occurs the node checks the other possible nicknames (1-253) in turn. The node listens for a response event, probe ACK [CLASS1.PROTOCOL, TYPE=3 Probe Ack ](./class1.protocol?id=type3), from a node (which may already have the nickname assigned) for one second before concluding that the ID is free and then uses the ID as its own nickname-ID. On slower medium increase this timeout at will.
-one
-It is recommended that some visual indication is shown to indicate success. A blinking green led that turns steady green after a node has got its nickname is the recommended indication. If there is a response for all addresses a failure condition is set (segment full) and the node goes to sleep.
+If no master assigns a nickname, the node checks the available nicknames (`1` through `253`) in sequence. For each candidate nickname, it listens for a [CLASS1.PROTOCOL, type 3 Probe ACK](./class1.protocol?id=type3) for one second. If no ACK is received, the node assumes that the nickname is free and assigns it to itself. The timeout may be increased for slower media.
 
-On an insecure medium such as RF (good practice also for CAN) it is recommended that the Probe is sent several time in a row to make sure that the nickname actually is free. This is actually a good method on all low level protocols and at least three tests are recommended. 
+The node should provide a visual indication of success. For example, a green LED can blink during discovery and remain steadily lit after the node receives a nickname. If every address is occupied, the node reports a segment-full condition and enters a low-power or inactive state.
 
-##### Step 3
+On insecure media such as RF, and as a good practice on CAN, the probe should be sent several times to confirm that the nickname is free. At least three probe attempts are recommended for low-level protocols.
 
-After it assigns a nickname to itself the node sends nickname-ID accepted using its new nickname-ID to inform the segment of its identity. 
+#### Step 3
 
-##### Step 4
+After assigning a nickname, the node sends a nickname-accepted event using its new nickname to announce its identity to the segment.
 
-It's now possible for other nodes to check the capabilities of this new node using read etc commands.
+#### Step 4
 
-Only one node at the time can go through the initialization process.
+Other nodes can now query the new node's capabilities using register read and related commands.
+
+Only one node should go through the active initialization process at a time.
 
 The following picture shows the nickname discovery process for a newly added node on a segment
 
@@ -66,136 +66,132 @@ The following picture shows the nickname discovery process for a newly added nod
 ![VSCP Works](./images/1_home_akhe_vscp_spec_images_nickname_seq.jpg)
 
 
-##### Node discovery
+#### Node discovery example
 
- 1.  The node which initially has its nickname set to 0xFF probe for a segment controller. Class = 0, Type = 2 
- 2.  No segment controller answers the probe and a new probe is therefore sent to a node with nickname=1. Again Class=0, Type=2. 
- 3.  There is a node with nickname= 1 already on the segment and it answers the probe with “probe ACK” Class=0, Type=3. The initiating node now knows this nickname is already in use. 
- 4.  A new probe is sent to a node with nickname=2. Again Class=0, Type=2. 
- 5.  No ACK is received and the node concludes that the nickname=2 is free and assigns it to itself. It then sends a probe again with the new nickname assigned reporting a “new node on line”.
+1. The uninitialized node, using nickname `0xFF`, probes for a segment controller with class 0, type 2.
+2. No segment controller responds, so the node probes nickname `1` with class 0, type 2.
+3. A node already using nickname `1` responds with a probe ACK, class 0, type 3. The initializing node therefore knows that nickname `1` is occupied.
+4. The node probes nickname `2` with class 0, type 2.
+5. No ACK is received, so the node assigns nickname `2` to itself and announces that a new node is online.
 
-Before an installation in a large system it is better to preassigned IDs to the nodes. This is just done by connecting each of the nodes to a PC or similar and assigning IDs to each of them, one at the time. After that they can be installed at there location and will use this ID for the rest if there life or until told otherwise. 
+For large installations, it is often preferable to preassign nicknames. Connect each node to a PC or similar tool and assign its nickname before installation. The node can then use that nickname for its operational lifetime, unless it is explicitly changed.
 
-### Node segment initialization. Hard coded nodes.
+### Hard-coded-node initialization
 
-Things are a little different for hard coded nodes.
+Hard-coded nodes follow a simpler initialization process.
 
-If a hard coded node has its address set in hardware it starts working on the segment immediately.
+If a hard-coded node has an address set in hardware, it can start operating on the segment immediately.
 
-If the nickname discovery method is implemented it goes through the same steps (1-3) as the dynamic node. In this case all hard coded nodes on the segment must recognize and react on the probe-event.
+If a hard-coded node also implements nickname discovery, it follows steps 1-3 of the dynamic-node procedure. All hard-coded nodes on the segment must recognize and respond to probe events.
 
-The hard coded bit should always be set for a hard coded node regardless if the nickname discovery method is implemented or not. 
+The hard-coded bit must always be set for a hard-coded node, regardless of whether nickname discovery is implemented.
 
-### Node segment initialization.. Silent dynamic nodes.
+### Silent dynamic nodes
 
-Sometimes it can be an advantage to build modules that start up as silent nodes. This is typical for a RS-485 or similar segment. This type of nodes only listen to traffic before they get initialized by a host. In this case the nickname discovery process is not started for a node when it is powered up for the first time. This type on node instead starts to listen for the CLASS1.PROTOCOL, Type=23 (GUID drop nickname-ID / reset device.) event. When this series of events is received and the GUID is the same as for the module the module starts the nickname discovery procedure as of above.
+In some installations, especially RS-485 segments, it is useful for a module to start as a silent node. A silent node listens to traffic but does not begin nickname discovery when it is powered on. Instead, it waits for the CLASS1.PROTOCOL, type 23 event (GUID drop nickname ID / reset device). When it receives the complete event sequence and the GUID matches its own, it starts the dynamic nickname-discovery procedure described above.
 
-Using this method it is thus possible, for example, to let a user enter the GUID of a module and let some software search and initialize the node. As only the last four bytes of the GUID are unknown if the manufacturer GUID is known this is easy to enter for a user with the addition of a list box for the manufacturer.
+This allows software to search for and initialize a module after the user provides its GUID. If the manufacturer's GUID prefix is known, the user may only need to enter the final four bytes and select the manufacturer.
 
-The active nickname process is still a better choice as it allows for automatic node discovery without user intervention and should always be the first choice.
+Active nickname discovery remains the preferred approach because it supports automatic node discovery without user intervention.
 
-This is an example on the way it works
+The following example shows how the silent-node procedure works.
 
-You have two nodes and assign unique IDs from there serial numbers
+Assume two nodes are assigned unique identifiers derived from their serial numbers:
 
 
-*  Node 1 have serial number 0001 
-*  Node 2 have serial number 0002
+* Node 1 has serial number `0001`.
+* Node 2 has serial number `0002`.
 
 Combined with your GUID this will be
 
 
-*  Node 1 have GUID aa bb cc dd 00 00 00 00 00 00 00 00 00 00 00 01 
-*  Node 2 have GUID aa bb cc dd 00 00 00 00 00 00 00 00 00 00 00 02
+* Node 1 has GUID `aa bb cc dd 00 00 00 00 00 00 00 00 00 00 00 01`.
+* Node 2 has GUID `aa bb cc dd 00 00 00 00 00 00 00 00 00 00 00 02`.
 
-When you start up your nodes they see they don't have assigned nickname-ID (= 0xFF) so they just sit back and listen.
+When the nodes start, they detect that they have no assigned nickname (`0xFF`) and remain silent while listening for commands.
 
 When your PC app. want to initialize the new nodes it sends
 
 
-*  CLASS1.PROTOCOL Type 23 Data 00 aa bb cc dd
-*  CLASS1.PROTOCOL Type 23 Data 01 00 00 00 00
-*  CLASS1.PROTOCOL Type 23 Data 02 00 00 00 00
-*  CLASS1.PROTOCOL Type 23 Data 03 00 00 00 01
+* CLASS1.PROTOCOL type 23, data `00 aa bb cc dd`
+* CLASS1.PROTOCOL type 23, data `01 00 00 00 00`
+* CLASS1.PROTOCOL type 23, data `02 00 00 00 00`
+* CLASS1.PROTOCOL type 23, data `03 00 00 00 01`
 
-At this stage your node knows it should enter the initialization phase and it will try to discover a new nickname using 0xFF as its nickname.
+The first node now enters initialization and tries to discover a nickname using `0xFF` as its current nickname.
 
-This will be several CLASS.PROTOCOL Type 2 staring with 0 (server) as the probe ID and increasing the probe ID as long as CLASS.PROTOCOL Type 3 is received (i.e other nodes say they use that id).
+It sends several CLASS1.PROTOCOL type 2 probes, starting with `0` (the server address) and increasing the candidate nickname while CLASS1.PROTOCOL type 3 responses indicate that an address is occupied.
 
-If this is the first node on the bus it will claim nickname-ID = 1. This ID should (normally( be stored in EEPROM and will be used without the sequence above next time the node is started.
+If it is the first node on the bus, it claims nickname `1`. The node should normally store this value in EEPROM and reuse it the next time it starts.
 
 The PC now continue with the other node sending
 
 
-*  CLASS1.PROTOCOL Type 23 Data 00 aa bb cc dd
-*  CLASS1.PROTOCOL Type 23 Data 01 00 00 00 00
-*  CLASS1.PROTOCOL Type 23 Data 02 00 00 00 00
-*  CLASS1.PROTOCOL Type 23 Data 03 00 00 00 02
+* CLASS1.PROTOCOL type 23, data `00 aa bb cc dd`
+* CLASS1.PROTOCOL type 23, data `01 00 00 00 00`
+* CLASS1.PROTOCOL type 23, data `02 00 00 00 00`
+* CLASS1.PROTOCOL type 23, data `03 00 00 00 02`
 
-and this node will start its initialization procedure and find a free ID.
+The second node starts its initialization procedure and finds a free nickname.
 
-Note that this process is only done the first time you put a fresh new node on a bus. Next time the ID the node finds will be used directly from the time the node starts up.
+This process is normally needed only when a new node is first installed on the bus. On subsequent starts, the node uses the nickname stored in non-volatile memory.
 
-If you always have a PC present let it send CLASS1.PROTOCOL, Type 6 to the uninitialized node when the node send the probe to the server (.CLASS.PROTOCOL Type 2 with probe id=0xFF and origin 0xFF) 
+If a PC is always present, it can send CLASS1.PROTOCOL type 6 to the uninitialized node when the node probes the server with CLASS1.PROTOCOL type 2 using probe ID `0xFF` and origin `0xFF`.
 
-### Examples
+## Example: lighting control
 
-A typical scenario for a segment without a Master can be a big room where there are several switches to turn a light on or off. During the installation the switches are installed and initialized.
+A typical segment without a master might control lighting in a large room with several switches. During installation, each switch is initialized and assigned a nickname.
 
-When each switch is initialized it checks the segment for a free nickname and grabs it and stores it in local non-volatile memory. By being connected to the segment the installer makes note of the IDs. It is of course also possible to set the nicknames to some desired value instead.
+Each switch checks the segment for a free nickname and stores the assigned value in non-volatile memory. The installer records the nicknames, although specific nicknames may also be assigned manually.
 
-Additionally, VSCP aware relays are installed and also initialized to handle the actual switching of lighting. Again each in turn are initialized and the segment unique nickname noted.
+VSCP-aware relay nodes are then installed and initialized to control the lights. Their nicknames are recorded as well.
 
-At this stage the switches and the relay nodes have no connection with each other. One can press any switch and an on-event is sent on the segment but the relays don't know how to react on it.
+At this stage, the switches and relay nodes are not yet associated. Pressing a switch sends an on event, but the relays do not yet know how to respond.
 
-We do this by entering some elements in the decision matrix of the relay nodes.
-
-
-*  If on-event is received from node with nickname n1 set relay on. 
-*  If on-event is received from node with nickname n2 set relay on. 
-*  If on-event is received from node with nickname n3 set relay on.
-
-etc and the same for off-event
+This association is configured by adding decision-matrix entries to the relay nodes:
 
 
-*  If off-event is received from node with nickname n1 set relay off. 
-*  If off-event is received from node with nickname n2 set relay off. 
-*  If off-event is received from node with nickname n3 set relay off.
+* If an on event is received from node `n1`, turn the relay on.
+* If an on event is received from node `n2`, turn the relay on.
+* If an on event is received from node `n3`, turn the relay on.
 
-As the decision matrix also is stored in the nodes non volatile storage, the system is now coupled together in this way until changed sometime in the future.
-
-To have switches in this way that send on and off events is not so smart when you have a visible indication (lights go on or off) and it would have been much better to let the switches send only an on-event and let the relay-node decide what to do. In this case the decision matrix would look:
+The corresponding off-event entries are:
 
 
-*  If on-event is received from node with nickname n1 toggle relay state. 
-*  If on-event is received from node with nickname n2 toggle relay state. 
-*  If on-event is received from node with nickname n3 toggle relay state.
+* If an off event is received from node `n1`, turn the relay off.
+* If an off event is received from node `n2`, turn the relay off.
+* If an off event is received from node `n3`, turn the relay off.
 
-But how about a situation when we need a visual indication on the switch for instance? This can be typical when we turn a boiler or something like that off. The answer is simple. We just look for a event from the device we control. In the decision matrix of the switches we just enter
+Because the decision matrix is stored in non-volatile memory, this configuration remains active until it is changed.
 
-
-*  If on-event is received from node with nickname s1 - status light on. 
-*  If off-event is received from node with nickname s1 - status light off.
-
-It's very easy to add a switch to the scenario above and it can be even easier if the zone concepts are used. In this concept each switch on/off event add information on which zone it controls and the same change is done in the decision matrix we get something like:
+When the controlled lights provide a visible indication, switches do not need to send separate on and off events. They can send only an on event and let the relay decide what to do. The decision matrix can then use toggle actions:
 
 
-*  If an on-event is received for zone x1 turn on relay.
+* If an on event is received from node `n1`, toggle the relay state.
+* If an on event is received from node `n2`, toggle the relay state.
+* If an on event is received from node `n3`, toggle the relay state.
 
-We now get even more flexible when we need to add/change the setup.
+If a switch needs its own status indication, such as when controlling a boiler, it can monitor events from the controlled device. Its decision matrix can contain:
 
-What if I want to control the lights from my PC?
 
-No problem just send the same on-event to the zone from the PC. The relay and the switches will behave just as a new switch has been added.
+* If an on event is received from node `s1`, turn the status light on.
+* If an off event is received from node `s1`, turn the status light off.
 
-What if I want a remote control that controls the lighting?
+Adding another switch is straightforward, and zones can simplify the configuration further. Each switch event can include the zone it controls. The decision matrix can then use a zone instead of a specific nickname:
 
-Just let the remote control interface have a decision matrix element that sends out the on-event to the zone when the selected key is pressed.
 
-What if I want the lights to be turned on when the alarm goes off?
+* If an on event is received for zone `x1`, turn on the relay.
 
-Same solution here. Program the alarm control to send the on-event to the zone on alarm.
+This makes the installation easier to extend or reconfigure.
 
-*You imagination is the only limitation….*
+### Extending the example
+
+To control the lights from a PC, send the same on event to the zone. The relay and switches respond as if another switch had been added.
+
+A remote control can use a decision-matrix entry that sends the zone's on event when a selected key is pressed.
+
+To turn the lights on when an alarm is triggered, configure the alarm controller to send the zone's on event.
+
+The same approach can be used for other event sources. The decision matrix defines how those sources interact with the lighting system.
 
 [filename](./bottom_copyright.md ':include')`

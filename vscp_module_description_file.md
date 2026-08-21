@@ -88,7 +88,7 @@ Every module should have an initial block that describes the module. This block 
 VSCP level of protocol this module works with. Defaults to 1 if not present.
 
 ##### changed
-Date on ISO format for last change of file.
+Date on ISO 8601 format for last change of file.
 
 ##### name
 Name is the name of the module. A unique describing name is recommended. This name will be translated to lower case and is used as the name of the module when referring to it in software.
@@ -246,7 +246,7 @@ In the firmware block you can specify links to firmware file that is used by the
             url="path" 
             format="format" 
             size="size"
-            date="ISO date" 
+            date="ISO 8601 date" 
             md5="hexadecimal md5 hash"
             version_major="a" 
             version_minor="b" 
@@ -336,7 +336,7 @@ In the picture block you can specify a link to an image file that in some way is
 
 ```xml
 <files>
-  <picture url="path" format="jpeg" date="ISO date" version_major="a" version_minor="b" version_subminor="c">
+  <picture url="path" format="jpeg" date="ISO 8601 date" version_major="a" version_minor="b" version_subminor="c">
     <url>https://www.somewhere.com/picture.jpg</url>
     <description lang="en">Description of picture</description>
     <infourl lang="en">https://www.somewhere.com</infourl>
@@ -354,7 +354,7 @@ Any number of anguage specific descriptions and/or infourl's can be set for each
 | **url**   | The url from which the picture file can be fetched. |
 | **path**  | (Deprecated alternative to "url"). The url to the picture file. |
 | **format** | The format of the picture file. "png", "jpeg" and "jpg" is current valid values. |
-| **date** | Publish date in ISO format. |
+| **date** | Publish date in ISO 8601 format. |
 
 #### video :id=video_xml
 
@@ -380,7 +380,7 @@ Any number of language specific descriptions and/or infourl's can be set for eac
 | **url**   | The url from which the video file can be fetched. |
 | **path**  | (Deprecated alternative to "url"). The url to the video file. |
 | **format** | The format of the video file. "mp4", "mov" and "avi" is current valid values. |
-| **date** | Publish date in ISO format. |
+| **date** | Publish date in ISO 8601 format. |
 
 #### manual :id=manual_xml
 
@@ -407,7 +407,7 @@ Any number of language specific descriptions and/or infourl's can be set for eac
 | **path**  | (Deprecated alternative to "url"). The url to the video file. |
 | **format** | The format of the video file. "txt", "md" (markdown), "html" and "pdf" is current valid values. |
 | **lang**  | The language of the manual. The language code should be a valid two letter code (ISO 639-1 code)[https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes6]. |
-| **date** | Publish date in ISO format. |
+| **date** | Publish date in ISO 8601 format. |
 | **version_major** | Major version number for manual. |
 | **version_minor** | Minor version number for manual. |
 | **version_subminor** | Sub minor version number for manual. |
@@ -446,7 +446,7 @@ Any number of language specific descriptions and/or infourl's can be set for eac
 | **os** | The operating system. Examples are "Debian Linux", "Microsoft Windows", "Apple IOS" etc |
 | **osver** | The version of the operating system. Examples are "10", "8.1" etc |
 | **architecture** | OS architecture (amd64, arm64, x86 etc) |
-| **date** | Release date in ISO-format |
+| **date** | Release date in ISO 8601 format |
 | **version_major** | Major version number for driver. |
 | **version_minor** | Minor version number for driver. |
 | **version_subminor** | Sub minor version number for driver. |
@@ -476,7 +476,7 @@ Any number of language specific descriptions and/or infourl's can be set for eac
 | **url**   | The url from which the video file can be fetched. |
 | **path**  | (Deprecated alternative to "url"). The url to the video file. |
 | **format** | The format of the setup file. "vscpjs" for VSCP javascript setup is the only current valid value. |
-| **date** | Publish date in ISO format. |
+| **date** | Publish date in ISO 8601 format. |
 | **version_major** | Major version number for setup. |
 | **version_minor** | Minor version number for setup. |
 | **version_subminor** | Sub minor version number for setup. |
@@ -1886,7 +1886,7 @@ In the picture block you can specify a link to an image file that in some way is
     {
      "url" : "https://www.somewhere.com/picture.jpg",
      "format" : "jpeg",
-     "date" : "ISO date",
+     "date" : "ISO 8601 format",
      "version_major" : "a",
      "version_minor" : "b",
      "version_subminor" : "c",  
