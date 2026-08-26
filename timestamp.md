@@ -97,7 +97,6 @@ The JSON event format is commonly used for MQTT and other integrations. An event
   "type": 8,
   "guid": "00:00:00:00:00:00:00:00:00:00:00:00:00:01:00:02",
   "data": [1, 2, 3, 4, 5, 6, 7],
-  "note": "This is some text"
 }
 ```
 

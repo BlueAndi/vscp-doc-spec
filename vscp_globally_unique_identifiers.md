@@ -42,10 +42,6 @@ this is equal to
 
     FF:FF:FF:FF:FF:FF:FF:FF:01:02:03:AA:44:01:30
 
-You can even write
-
-    *:1
-
 You can use the standard form for GUID's
 
     {FFFFFFFF-FFFF-FFFF-0102-03AABB440130}
