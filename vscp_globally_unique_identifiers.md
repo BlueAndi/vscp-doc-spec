@@ -34,7 +34,7 @@ As FF is very common a GUID with FF in the most significant byte can be written 
 
 this is the same as above. The :: is a short cut notation for FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF.
 
-You can also groupo GUID's in other ways
+You can also group GUID's in other ways
 
     ::0102:03aa:44:01:30
 
@@ -56,7 +56,7 @@ A GUID with all FF is called a broadcast GUID and is used for broadcasting event
 
 or
 
-    FFFFFFFF-FFFF-FFFF-FFFF-FFFF-FFFF-FFFF-FFFF
+    FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF
 
 A GUID with all NULL's can be written as
 
@@ -136,34 +136,46 @@ As explained above GUID's with 0xFD in the most significant byte is reserved for
 
 ## Shorthand GUID's
 
-Note that there is a convenient shorthand notation :: used for IPV6 that can be used as a place holder for zeros. For example
+Note that there is a convenient shorthand notation :: that can be used as a place holder for zeros. For example
 
     ::1 
 
 really means 
 
-    00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:01
+    FF:FF:FF:FF:FF:FF:FF:FF:Ff:FF:FF:FF:Ff:FF:FF:01
 
-and 
+and in the same way
 
-    FF:21::22:32 
+    ::0102:03aa:44:01:30
 
-is the same as
+gives
 
-    FF:21:00:00:00:00:00:00:00:00:00:00:00:00:22:32
+    FF:FF:FF:FF:FF:FF:FF:FF:01:02:03:AA:44:01:30
 
-we use *: in the same way for FFs so that
+The same is true for GUID's with zeroes in the most significant bytes. For example
 
-	
+    -:1,2,3
 
-	  *:1 
+really means
 
+    00:00:00:00:00:00:00:00:00:00:00:00:00:01:02:03
 
-really means 
+and this is true also if placed at the end of a GUID. For example
 
-    FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:01
+    01:-
 
-These short cut notations makes it much easier to write long GUID's. 
+which is equal to
+
+    01:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00
+
+But
+
+  001122
+
+is also valid and is equal to
+
+  00:11:22:00:00:00:00:00:00:00:00:00:00:00:00
+
 
 
 [filename](./bottom_copyright.md ':include')
